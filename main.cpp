@@ -96,6 +96,11 @@ std::optional<std::string> findValueString (const std::string & input, const std
     auto value = input.substr (controlPrefix.length ());
     value.erase (std::ranges::remove_if (value, isspace).begin (), value.end ());
 
+    //return nullopt if value after 'set-preamp-level' is empty
+    if (value.empty()){
+        return std::nullopt;
+    }
+
     return value;
 }
 
