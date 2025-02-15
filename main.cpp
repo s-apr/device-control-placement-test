@@ -108,11 +108,24 @@ bool processDeviceCommand (const std::string & command, Device & device)
 {
     if (auto preampLevel = findValueString (command, "set-preamp-level"); preampLevel.has_value ())
     {
-        const auto level = std::stoi (*preampLevel);
-        device.setPreampLevel (level);
-        return true;
+        try
+        {
+            const auto level = std::stoi (*preampLevel);
+            if(level < Device::MINUS_INFINITY_DB || level > Device::UNITY_GAIN_DB)
+            {
+                std::cout << "Error: Preamp level is out of range (-127 - 0)" << std::endl;
+                return false;
+            }
+            device.setPreampLevel (level);
+            return true;
+        }
+        catch(const std::invalid_argument&)
+        {
+            std::cout << "Error: Invalid preamp value, must be a number" << std::endl;
+            return false;
+        }
     }
-
+    
     return false;
 }
 
