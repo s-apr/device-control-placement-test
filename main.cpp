@@ -1,3 +1,6 @@
+//necessary headers
+#include <iostream>
+#include <algorithm>
 #include <memory>
 #include <ranges>
 #include <source_location>
