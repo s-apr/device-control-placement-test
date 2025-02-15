@@ -208,7 +208,7 @@ void testMessageGenerator (Tester & tester)
     device.addListener (messageGenerator);
 
     tester.check (messageGenerator->currentMessage.empty ());
-    device.setPreampLevel (-6);
+    device.setPreampLevel (-66);
     tester.check (messageGenerator->currentMessage == "preampLevel control changed to -66");
 }
 
