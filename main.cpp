@@ -1,6 +1,8 @@
-//necessary headers
+//added headers
+    //errors checked with general google search to find appropriate headers
 #include <iostream>
 #include <algorithm>
+
 #include <memory>
 #include <ranges>
 #include <source_location>
@@ -29,7 +31,7 @@ public:
 
     void removeListener (std::shared_ptr<Listener> listener)
     {
-        listeners.erase (std::ranges::remove (listeners, listener).begin (), listeners.end ());
+        listeners.erase(std::ranges::remove(listeners, listener).begin(), listeners.end());
     }
 
     std::string getModelName () const
@@ -51,15 +53,17 @@ public:
     static constexpr int MINUS_INFINITY_DB = -127;
     static constexpr int UNITY_GAIN_DB = 0;
 
-    //phantomPower setter
-        //bool takes 1 or 0 to set true or false
+    //phantomPower setter method
+        //method takes 1 or 0 to set member var to true or false
+            //notifyListeners -> console output
     void setPhantomPower(bool enable)
     {
         phantomPowerEnabled = enable;
         notifyListeners("phantomPower", phantomPowerEnabled);
     }
 
-    //phantomPower getter
+    //phantomPower getter method
+        //returns var value
     bool getPhantomPower() const
     {
         return phantomPowerEnabled;
@@ -114,7 +118,9 @@ std::optional<std::string> findValueString (const std::string & input, const std
     auto value = input.substr (controlPrefix.length ());
     value.erase (std::ranges::remove_if (value, isspace).begin (), value.end ());
 
-    //return nullopt if value after 'set-preamp-level' is empty
+    //return nullopt if value after 'set-preamp-level' / 'set-phantom-power' is empty
+        //nullopt -> proccessDeviceCommand checks fail -> runApp error message
+            //nullopt used due to return type (stackoverflow & claude.ai)
     if (value.empty()){
         return std::nullopt;
     }
@@ -127,17 +133,22 @@ bool processDeviceCommand (const std::string & command, Device & device)
     //preamp command checking
     if (auto preampLevel = findValueString (command, "set-preamp-level"); preampLevel.has_value ())
     {
+        //try convert input value to integer
+            //suggested Vs if statements (stackoverflow & claude.ai)
         try
         {
             const auto level = std::stoi (*preampLevel);
+            //check value is in range -127 - 0
             if(level < Device::MINUS_INFINITY_DB || level > Device::UNITY_GAIN_DB)
             {
                 std::cout << "Error: Preamp level is out of range (-127 - 0)" << std::endl;
                 return false;
             }
+            //set preamp level
             device.setPreampLevel (level);
             return true;
         }
+        //catch characters which cannot be converted
         catch(const std::invalid_argument&)
         {
             std::cout << "Error: Invalid preamp value, must be a number" << std::endl;
@@ -149,14 +160,17 @@ bool processDeviceCommand (const std::string & command, Device & device)
     if (auto phantomPower = findValueString(command, "set-phantom-power"); phantomPower.has_value())
     {
         auto value = *phantomPower;
-        //convert any value entered to lowercase (so 'ON'/'OFF' both work)
-        std::transform(value.begin(), value.end(), value.begin(), ::tolower);
 
+        //convert any character value entered to lowercase (so 'ON'/'OFF' are both accepted)
+        std::transform(value.begin(), value.end(), value.begin(), std::tolower);
+
+        //accept on OR 1
         if (value == "on" || value == "1")
         {
             device.setPhantomPower(true);
             return true;
         }
+        //accept off OR 0
         else if (value == "off" || value == "0")
         {
             device.setPhantomPower(false);
@@ -183,6 +197,7 @@ void runApp ()
     std::cout << "Possible commands\n";
     std::cout << "-----------------\n";
     std::cout << "set-preamp-level  [-127 .. 0]  : set the preamp level (dB) \n";
+    //added phantom power option in inital menu
     std::cout << "set-phantom-power [on/1 OR off/0] : set the phantom power (on/off)\n";
     std::cout << "status                         : view a list of controls and their values \n";
     std::cout << "quit                           : quit Device Control \n\n";
@@ -267,6 +282,8 @@ void testMessageGenerator (Tester & tester)
     device.addListener (messageGenerator);
 
     tester.check (messageGenerator->currentMessage.empty ());
+    //changed from (-6) to (-66)
+        //mismatch between check & level
     device.setPreampLevel (-66);
     tester.check (messageGenerator->currentMessage == "preampLevel control changed to -66");
 }
