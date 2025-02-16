@@ -51,6 +51,20 @@ public:
     static constexpr int MINUS_INFINITY_DB = -127;
     static constexpr int UNITY_GAIN_DB = 0;
 
+    //phantomPower setter
+        //bool takes 1 or 0 to set true or false
+    void setPhantomPower(bool enable)
+    {
+        phantomPowerEnabled = enable;
+        notifyListeners("phantomPower", phantomPowerEnabled);
+    }
+
+    //phantomPower getter
+    bool getPhantomPower() const
+    {
+        return phantomPowerEnabled;
+    }
+
 private:
     void notifyListeners (const std::string & name, const std::variant<int, bool> & value) const
     {
@@ -62,6 +76,10 @@ private:
     int preampLevelDb = MINUS_INFINITY_DB;
 
     std::vector<std::shared_ptr<Listener>> listeners;
+
+    //bool for phantom-power
+        //default off (false)
+    bool phantomPowerEnabled = false;
 };
 
 class DeviceMessageGenerator : public Device::Listener
@@ -106,6 +124,7 @@ std::optional<std::string> findValueString (const std::string & input, const std
 
 bool processDeviceCommand (const std::string & command, Device & device)
 {
+    //preamp command checking
     if (auto preampLevel = findValueString (command, "set-preamp-level"); preampLevel.has_value ())
     {
         try
@@ -125,7 +144,27 @@ bool processDeviceCommand (const std::string & command, Device & device)
             return false;
         }
     }
-    
+
+    //phantompower command checking
+    if (auto phantomPower = findValueString(command, "set-phantom-power"); phantomPower.has_value())
+    {
+        auto value = *phantomPower;
+        //convert any value entered to lowercase (so 'ON'/'OFF' both work)
+        std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+
+        if (value == "on" || value == "1")
+        {
+            device.setPhantomPower(true);
+            return true;
+        }
+        else if (value == "off" || value == "0")
+        {
+            device.setPhantomPower(false);
+            return true;
+        }
+        std::cout << "Error: Invalid phantom power value (on/1 or off/0)" << std::endl;
+    }
+
     return false;
 }
 
@@ -144,6 +183,7 @@ void runApp ()
     std::cout << "Possible commands\n";
     std::cout << "-----------------\n";
     std::cout << "set-preamp-level  [-127 .. 0]  : set the preamp level (dB) \n";
+    std::cout << "set-phantom-power [on/1 OR off/0] : set the phantom power (on/off)\n";
     std::cout << "status                         : view a list of controls and their values \n";
     std::cout << "quit                           : quit Device Control \n\n";
 
@@ -160,6 +200,7 @@ void runApp ()
         if (input == "status")
         {
             std::cout << "Preamp level: " << std::to_string (device.getPreampLevel ()) << std::endl;
+            std::cout << "Phantom power state " << (device.getPhantomPower() ? "on" : "off") << std::endl;
         }
         else if (! processDeviceCommand (input, device))
         {
